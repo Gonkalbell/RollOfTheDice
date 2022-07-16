@@ -45,5 +45,23 @@ func roll(dir):
 	mesh.transform.origin = Vector3(0, 1, 0)
 	mesh.global_transform.basis = basis
 
+	print_debug(get_top_face())
+
 func _on_Tween_tween_step(object, key, elapsed, value):
 	pivot.transform = pivot.transform.orthonormalized()
+
+func get_top_face() -> int:
+	var top_face_dir = mesh.global_transform.basis.inverse() * Vector3.UP
+	var min_distance = 10000
+	var face_value = -1
+	print(top_face_dir)
+
+	var face_dirs = [Vector3.BACK, Vector3.RIGHT, Vector3.UP, Vector3.DOWN, Vector3.LEFT, Vector3.FORWARD]
+	
+	for i in range(len(face_dirs)):
+		var distance = top_face_dir.distance_squared_to(face_dirs[i])
+		if distance < min_distance:
+			min_distance = distance
+			face_value = i + 1
+	
+	return face_value
