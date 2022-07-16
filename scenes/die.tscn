@@ -27,4 +27,28 @@ material/0 = SubResource( 2 )
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
 shape = SubResource( 3 )
 
+[node name="ForwardRayCast" type="RayCast" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1 )
+visible = false
+cast_to = Vector3( 0, 0, 1.5 )
+debug_shape_custom_color = Color( 0, 0, 1, 1 )
+
+[node name="RightRayCast" type="RayCast" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0 )
+visible = false
+cast_to = Vector3( 1, 0, 0 )
+debug_shape_custom_color = Color( 1, 0, 0, 1 )
+
+[node name="BackRayCast" type="RayCast" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -1 )
+visible = false
+cast_to = Vector3( 0, 0, -1 )
+debug_shape_custom_color = Color( 1, 1, 0, 1 )
+
+[node name="LeftRayCast" type="RayCast" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 1, 0 )
+visible = false
+cast_to = Vector3( -1, 0, 0 )
+debug_shape_custom_color = Color( 0, 1, 1, 1 )
+
 [connection signal="tween_step" from="Tween" to="." method="_on_Tween_tween_step"]
