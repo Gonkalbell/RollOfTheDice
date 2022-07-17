@@ -37,9 +37,12 @@ func _physics_process(delta):
 				state = RollState.IDLE
 
 	var num_dice = len(get_tree().get_nodes_in_group("dice"))
-	if num_dice == 0:
-		turns_til_next_spawn = 1
-		_update_dice_spawn()
+	match num_dice:
+		0:
+			turns_til_next_spawn = 0
+			_update_dice_spawn()
+		1:
+			turns_til_next_spawn = 0
 
 func _take_turn(dir: Vector3):
 	var tree = get_tree();
@@ -57,7 +60,6 @@ func _done_rolling_dice():
 
 func _update_dice_spawn():
 	turns_til_next_spawn -= 1
-	print(turns_til_next_spawn, dice_until_difficulty_spike, turns_per_dice)
 	if turns_til_next_spawn <= 0:
 		spawn_die()
 		turns_til_next_spawn = turns_per_dice
