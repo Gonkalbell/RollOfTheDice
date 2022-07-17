@@ -11,42 +11,52 @@ var state = RollState.MATCHING
 var rng = RandomNumberGenerator.new()
 export (PackedScene) var dice_scene
 
-var turns_til_next_spawn = 1
-var turns_per_dice = 1
-var dice_until_difficulty_spike = 1
+var dice_cleared = 0
 var moves_left = 20
+var is_playing = false
 
 func _ready():
 	$Gui.update_moves_left(moves_left)
+	$Gui.update_dice_cleared(dice_cleared)
+
+func game_over():
+	$Gui.show_game_over()
+	get_tree().call_group("dice", "queue_free")
+	is_playing = false
+
+func new_game():
+	dice_cleared = 0
+	$Gui.update_moves_left(moves_left)
+	moves_left = 20
+	$Gui.update_dice_cleared(dice_cleared)
+	$Gui.show_message("Go!")
+	is_playing = true
 
 func _physics_process(delta):
-	var tree = get_tree();
-	match state:
-		RollState.IDLE:
-			if Input.is_action_pressed("ui_up"):
-				_take_turn(Vector3.FORWARD)
-			if Input.is_action_pressed("ui_down"):
-				_take_turn(Vector3.BACK)
-			if Input.is_action_pressed("ui_left"):
-				_take_turn(Vector3.LEFT)
-			if Input.is_action_pressed("ui_right"):
-				_take_turn(Vector3.RIGHT)
-		RollState.ROLLING:
-			if _done_rolling_dice():
-				yield($NextMoveTimer, "timeout")
-				tree.call_group("dice", "match_neighbors")
-				state = RollState.MATCHING
-		RollState.MATCHING:
-			var num_dice = len(get_tree().get_nodes_in_group("dice"))
-			match num_dice:
-				0:
-					turns_til_next_spawn = 0
+	if is_playing:
+		var tree = get_tree();
+		match state:
+			RollState.IDLE:
+				if Input.is_action_pressed("ui_up"):
+					_take_turn(Vector3.FORWARD)
+				if Input.is_action_pressed("ui_down"):
+					_take_turn(Vector3.BACK)
+				if Input.is_action_pressed("ui_left"):
+					_take_turn(Vector3.LEFT)
+				if Input.is_action_pressed("ui_right"):
+					_take_turn(Vector3.RIGHT)
+			RollState.ROLLING:
+				if _done_rolling_dice():
+					yield($NextMoveTimer, "timeout")
+					tree.call_group("dice", "match_neighbors")
+					state = RollState.MATCHING
+			RollState.MATCHING:
+				var num_dice = len(get_tree().get_nodes_in_group("dice"))
+				if num_dice <= 0:
 					_update_dice_spawn()
-				1:
-					turns_til_next_spawn = 0
 
-			if _done_rolling_dice():
-				state = RollState.IDLE
+				if _done_rolling_dice():
+					state = RollState.IDLE
 
 func _take_turn(dir: Vector3):
 	var tree = get_tree();
@@ -68,14 +78,7 @@ func _done_rolling_dice():
 	return done_rolling
 
 func _update_dice_spawn():
-	turns_til_next_spawn -= 1
-	if turns_til_next_spawn <= 0:
-		spawn_die()
-		turns_til_next_spawn = turns_per_dice
-		dice_until_difficulty_spike -= 1
-		if dice_until_difficulty_spike <= 0:
-			dice_until_difficulty_spike = 6
-			turns_per_dice = max(turns_per_dice - 1, 1)
+	spawn_die()
 
 func spawn_die():
 	var spawn_pos = find_spawn_pos()
@@ -106,10 +109,12 @@ func find_spawn_pos():
 				return spawn_pos
 	return null
 
-func game_over():
-	print("game over")
-
 func on_die_cleared():
-	print(moves_left)
 	moves_left += 1
 	$Gui.update_moves_left(moves_left)
+	dice_cleared += 1
+	$Gui.update_dice_cleared(dice_cleared)
+
+
+func start_game():
+	pass # Replace with function body.

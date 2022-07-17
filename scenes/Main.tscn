@@ -81,3 +81,5 @@ transform = Transform( -4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, -7, 0, 
 [node name="NextMoveTimer" type="Timer" parent="."]
 wait_time = 0.5
 one_shot = true
+
+[connection signal="start_game" from="Gui" to="." method="new_game"]
