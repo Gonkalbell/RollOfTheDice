@@ -57,8 +57,6 @@ func roll(dir:Vector3):
 	pivot.transform = Transform.IDENTITY
 	mesh.transform.origin = Vector3(0, 1, 0)
 	mesh.global_transform.basis = basis
-	
-	print("done rolling %s: %d" % [translation, get_top_face()])
 
 func get_top_face() -> int:
 	var top_face_dir = mesh.global_transform.basis.inverse() * Vector3.UP
@@ -87,7 +85,6 @@ func match_neighbors():
 	for raycast in raycasts:
 		if raycast.is_colliding() and raycast.get_collider().has_method("get_top_face"):
 			var other_top_face = raycast.get_collider().get_top_face()
-			print("%s : %d --- %s : %d" % [translation, top_face, raycast.get_collision_point(), other_top_face])
 			if top_face == other_top_face:
 				destroy()
 

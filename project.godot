@@ -36,6 +36,11 @@ config/name="RollOfTheDice"
 run/main_scene="res://scenes/test-scene.tscn"
 config/icon="res://icon.png"
 
+[display]
+
+window/size/width=1920
+window/size/height=1080
+
 [gdnative]
 
 singletons=[ "res://addons/godot-git-plugin/git_api.gdnlib" ]
@@ -44,6 +49,9 @@ singletons=[ "res://addons/godot-git-plugin/git_api.gdnlib" ]
 
 ui_right=false
 input=false
+window=false
+size=false
+width=false
 
 [physics]
 
