@@ -2,7 +2,7 @@ extends Node
 
 class_name Main
 
-enum RollState { IDLE, ROLLING, MATCHING }
+enum RollState { IDLE, ROLLING, MATCHING, SPAWNING }
 
 const MAP_WIDTH = 6
 const MAP_HEIGHT = 6
@@ -16,6 +16,7 @@ var moves_left = 20
 var is_playing = false
 
 func _ready():
+#	rng.randomize()
 	$Gui.update_moves_left(moves_left)
 	$Gui.update_dice_cleared(dice_cleared)
 
@@ -23,6 +24,7 @@ func game_over():
 	$Gui.show_game_over()
 	get_tree().call_group("dice", "queue_free")
 	is_playing = false
+	state = RollState.MATCHING
 
 func new_game():
 	dice_cleared = 0
@@ -45,23 +47,25 @@ func _physics_process(delta):
 					_take_turn(Vector3.LEFT)
 				if Input.is_action_pressed("ui_right"):
 					_take_turn(Vector3.RIGHT)
+
 			RollState.ROLLING:
 				if _done_rolling_dice():
 					yield($NextMoveTimer, "timeout")
 					tree.call_group("dice", "match_neighbors")
 					state = RollState.MATCHING
-			RollState.MATCHING:
-				var num_dice = len(get_tree().get_nodes_in_group("dice"))
-				if num_dice <= 0:
-					_update_dice_spawn()
 
+			RollState.MATCHING:
+				if _done_rolling_dice():
+					spawn_die()
+					state = RollState.SPAWNING
+
+			RollState.SPAWNING:
 				if _done_rolling_dice():
 					state = RollState.IDLE
 
 func _take_turn(dir: Vector3):
 	var tree = get_tree();
 	tree.call_group("dice", "roll", dir)
-	_update_dice_spawn()
 	moves_left -= 1
 	if moves_left <= 0:
 		game_over()
@@ -77,9 +81,6 @@ func _done_rolling_dice():
 			break;
 	return done_rolling
 
-func _update_dice_spawn():
-	spawn_die()
-
 func spawn_die():
 	var spawn_pos = find_spawn_pos()
 	if spawn_pos:
@@ -87,6 +88,7 @@ func spawn_die():
 		get_tree().get_root().add_child(die)
 		
 		die.translation = spawn_pos
+		die.randomize_direction(rng)
 	else:
 		game_over()
 
@@ -106,7 +108,10 @@ func find_spawn_pos():
 
 			var intersections = space.intersect_point(spawn_pos + Vector3(0, 1, 0), 1)
 			if len(intersections) == 0:
+				print("spawning at %d %d" % [x2, z2])
 				return spawn_pos
+			else:
+				print("can't spawn at %d %d" % [x2, z2])
 	return null
 
 func on_die_cleared():

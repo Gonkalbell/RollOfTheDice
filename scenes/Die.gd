@@ -2,19 +2,27 @@ extends Spatial
 class_name Die
 
 # Shamelessly stolen from http://kidscancode.org/godot_recipes/3d/rolling_cube/
-export var tween_time = 1 / 4.0
+export var tween_time = 1 / 8.0
 
 onready var pivot = $Pivot
 onready var mesh = $Pivot/MeshInstance
 onready var tween = $Tween
 
 var is_alive = false;
+var is_rolling = false;
 
 func _ready():
 	tween.interpolate_property(pivot, "scale", Vector3.ZERO, Vector3.ONE, tween_time, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 	tween.start()
 	yield(tween, "tween_all_completed")
 	is_alive = true
+
+func randomize_direction(rng: RandomNumberGenerator):
+	var face_dirs = [Vector3.BACK, Vector3.FORWARD, Vector3.UP, Vector3.DOWN, Vector3.LEFT, Vector3.RIGHT]
+	var at_i = rng.randi_range(0, 5)
+	# trick to not pick the same or opposite face
+	var up_i = (2 * (at_i / 2) + rng.randi_range(2, 5)) % 6
+	mesh.transform.basis = Transform.IDENTITY.looking_at(face_dirs[at_i], face_dirs[up_i]).basis
 
 # Cast a ray before moving to check for obstacles
 func can_roll(dir: Vector3) -> bool:
@@ -33,8 +41,11 @@ func roll(dir:Vector3):
 	if is_rolling():
 		return
 
+	is_rolling = true
+
 	# Also do nothing if we can't roll this way
 	if not can_roll(dir):
+		is_rolling = false
 		return
 
 	## Step 1: Offset the pivot
@@ -56,6 +67,7 @@ func roll(dir:Vector3):
 	pivot.transform = Transform.IDENTITY
 	mesh.transform.origin = Vector3(0, 1, 0)
 	mesh.global_transform.basis = basis
+	is_rolling = false
 
 func get_top_face() -> int:
 	var top_face_dir = mesh.global_transform.basis.inverse() * Vector3.UP
@@ -73,7 +85,7 @@ func get_top_face() -> int:
 	return face_value
 
 func is_rolling() -> bool:
-	return tween.is_active()
+	return is_rolling or tween.is_active()
 
 func match_neighbors():
 	# wait 3 physics frames for godot to stop drooling
