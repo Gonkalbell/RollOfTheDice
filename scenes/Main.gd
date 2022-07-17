@@ -2,21 +2,21 @@ extends Node
 
 class_name Main
 
-enum RollState { IDLE, ROLLING, MATCHING, SPAWNING }
+enum RollState { IDLE, ROLLING, SPAWNING, MATCHING }
 
 const MAP_WIDTH = 6
 const MAP_HEIGHT = 6
 
-var state = RollState.MATCHING
+var state = RollState.IDLE
 var rng = RandomNumberGenerator.new()
 export (PackedScene) var dice_scene
 
 var dice_cleared = 0
-var moves_left = 20
+var moves_left = 15
 var is_playing = false
 
 func _ready():
-#	rng.randomize()
+	rng.randomize()
 	$Gui.update_moves_left(moves_left)
 	$Gui.update_dice_cleared(dice_cleared)
 
@@ -24,58 +24,57 @@ func game_over():
 	$Gui.show_game_over()
 	get_tree().call_group("dice", "queue_free")
 	is_playing = false
-	state = RollState.MATCHING
 
 func new_game():
+	state = RollState.IDLE
 	dice_cleared = 0
-	$Gui.update_moves_left(moves_left)
-	moves_left = 20
-	$Gui.update_dice_cleared(dice_cleared)
-	$Gui.show_message("Go!")
+	moves_left = 15
 	is_playing = true
+	$Gui.update_dice_cleared(dice_cleared)
+	$Gui.update_moves_left(moves_left)
+	$Gui.show_message("Go!")
+	$NextMoveTimer.start()
+	spawn_die()
 
 func _physics_process(delta):
-	if is_playing:
+	if is_playing and _done_rolling_dice() and $NextMoveTimer.is_stopped():
 		var tree = get_tree();
 		match state:
 			RollState.IDLE:
 				if Input.is_action_pressed("ui_up"):
 					_take_turn(Vector3.FORWARD)
-				if Input.is_action_pressed("ui_down"):
+				elif Input.is_action_pressed("ui_down"):
 					_take_turn(Vector3.BACK)
-				if Input.is_action_pressed("ui_left"):
+				elif Input.is_action_pressed("ui_left"):
 					_take_turn(Vector3.LEFT)
-				if Input.is_action_pressed("ui_right"):
+				elif Input.is_action_pressed("ui_right"):
 					_take_turn(Vector3.RIGHT)
 
 			RollState.ROLLING:
-				if _done_rolling_dice():
-					yield($NextMoveTimer, "timeout")
-					tree.call_group("dice", "match_neighbors")
-					state = RollState.MATCHING
-
-			RollState.MATCHING:
-				if _done_rolling_dice():
-					spawn_die()
-					state = RollState.SPAWNING
+				spawn_die()
+				state = RollState.SPAWNING
 
 			RollState.SPAWNING:
-				if _done_rolling_dice():
-					state = RollState.IDLE
+				tree.call_group("dice", "match_neighbors")
+				state = RollState.MATCHING
+
+			RollState.MATCHING:
+				state = RollState.IDLE
+				if moves_left <= 0:
+					game_over()
 
 func _take_turn(dir: Vector3):
 	var tree = get_tree();
 	tree.call_group("dice", "roll", dir)
 	moves_left -= 1
-	if moves_left <= 0:
-		game_over()
 	$Gui.update_moves_left(moves_left)
 	state = RollState.ROLLING
 	$NextMoveTimer.start()
 
 func _done_rolling_dice():
 	var done_rolling = true
-	for node in get_tree().get_nodes_in_group("dice"):
+	var nodes = get_tree().get_nodes_in_group("dice")
+	for node in nodes:
 		if node.is_rolling() or !node.is_alive:
 			done_rolling = false;
 			break;
@@ -108,10 +107,7 @@ func find_spawn_pos():
 
 			var intersections = space.intersect_point(spawn_pos + Vector3(0, 1, 0), 1)
 			if len(intersections) == 0:
-				print("spawning at %d %d" % [x2, z2])
 				return spawn_pos
-			else:
-				print("can't spawn at %d %d" % [x2, z2])
 	return null
 
 func on_die_cleared():

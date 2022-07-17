@@ -2,7 +2,8 @@ extends Spatial
 class_name Die
 
 # Shamelessly stolen from http://kidscancode.org/godot_recipes/3d/rolling_cube/
-export var tween_time = 1 / 8.0
+export var tween_time = 1 / 5.0
+export var spawn_time = 1 / 10.0
 
 onready var pivot = $Pivot
 onready var mesh = $Pivot/MeshInstance
@@ -12,7 +13,7 @@ var is_alive = false;
 var is_rolling = false;
 
 func _ready():
-	tween.interpolate_property(pivot, "scale", Vector3.ZERO, Vector3.ONE, tween_time, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	tween.interpolate_property(pivot, "scale", Vector3.ZERO, Vector3.ONE, spawn_time, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 	tween.start()
 	yield(tween, "tween_all_completed")
 	is_alive = true
@@ -103,7 +104,7 @@ func destroy():
 	if is_alive:
 		is_alive = false
 		get_tree().call_group("dice_watcher", "on_die_cleared")
-		tween.interpolate_property(pivot, "scale", null, Vector3.ZERO, tween_time, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+		tween.interpolate_property(pivot, "scale", null, Vector3.ZERO, spawn_time, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 		tween.start()
 		yield(tween, "tween_all_completed")
 		queue_free()
