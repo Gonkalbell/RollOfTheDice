@@ -9,7 +9,13 @@ onready var mesh = $Pivot/MeshInstance
 onready var tween = $Tween
 onready var manager = get_node("../RulesManager")
 
-var is_alive = true;
+var is_alive = false;
+
+func _ready():
+	tween.interpolate_property(pivot, "scale", Vector3.ZERO, Vector3.ONE, tween_time, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	tween.start()
+	yield(tween, "tween_all_completed")
+	is_alive = true
 
 # Cast a ray before moving to check for obstacles
 func can_roll(dir: Vector3) -> bool:
@@ -40,7 +46,7 @@ func roll(dir:Vector3):
 	var axis = dir.cross(Vector3.DOWN)
 	tween.interpolate_property(pivot, "transform:basis",
 			null, pivot.transform.basis.rotated(axis, PI/2),
-			tween_time, Tween.TRANS_QUAD, Tween.EASE_IN)
+			tween_time, Tween.TRANS_QUAD, Tween.EASE_OUT)
 	tween.start()
 	yield(tween, "tween_all_completed")
 
@@ -51,6 +57,8 @@ func roll(dir:Vector3):
 	pivot.transform = Transform.IDENTITY
 	mesh.transform.origin = Vector3(0, 1, 0)
 	mesh.global_transform.basis = basis
+	
+	print("done rolling %s: %d" % [translation, get_top_face()])
 
 func get_top_face() -> int:
 	var top_face_dir = mesh.global_transform.basis.inverse() * Vector3.UP
@@ -70,26 +78,22 @@ func get_top_face() -> int:
 func is_rolling() -> bool:
 	return tween.is_active()
 
-
 func match_neighbors():
-	return
-	print("---")
-	var directions = [Vector3.FORWARD, Vector3.BACK, Vector3.LEFT, Vector3.RIGHT]
-	var space = get_world().direct_space_state
+	# wait 3 physics frames for godot to stop drooling
+	for i in range(0, 3):
+		yield(get_tree(), "physics_frame")
+	var raycasts = [$ForwardRayCast, $RightRayCast, $BackRayCast, $LeftRayCast]
 	var top_face = get_top_face()
-	var start = mesh.global_transform.origin
-	for dir in directions:
-		var collision = space.intersect_ray(start, start + dir * 2.5, [self])
-		print("%s : %d - %s - %s" % [start, top_face, dir, collision])
-		if collision and collision.collider.has_method("get_top_face"):
-			var other_top_face = collision.collider.get_top_face()
-			print("%s : %d --- %s : %d" % [translation, top_face, collision.position, other_top_face])
+	for raycast in raycasts:
+		if raycast.is_colliding() and raycast.get_collider().has_method("get_top_face"):
+			var other_top_face = raycast.get_collider().get_top_face()
+			print("%s : %d --- %s : %d" % [translation, top_face, raycast.get_collision_point(), other_top_face])
 			if top_face == other_top_face:
 				destroy()
 
 func destroy():
 	is_alive = false
-	tween.interpolate_property(pivot, "scale", null, Vector3(0, 0, 0), tween_time, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
+	tween.interpolate_property(pivot, "scale", null, Vector3.ZERO, tween_time, Tween.TRANS_LINEAR, Tween.EASE_IN_OUT)
 	tween.start()
 	yield(tween, "tween_all_completed")
 	queue_free()
